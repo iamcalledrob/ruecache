@@ -154,6 +154,12 @@ func (f *Cache) Stats() CacheStats {
 	return f.stats.Snapshot()
 }
 
+// Opts returns a pointer to the CacheOpts being used by this cache.
+// Intended for testing.
+func (f *Cache) Opts() *CacheOpts {
+	return &f.opts
+}
+
 // GetAndFill returns cached values for the given ids, fetching missed ones and filling the cache.
 // Will return a complete set of results or an error on failure.
 func (f *Cache) GetAndFill(ctx context.Context, ids []string) (results map[string][]byte, err error) {

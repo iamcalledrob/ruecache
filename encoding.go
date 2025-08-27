@@ -44,6 +44,11 @@ func NewEncodedCache[T any](
 	return &EncodedCache[T]{cache: cache, coder: coder}, nil
 }
 
+// Raw returns the underlying, byte-based cache
+func (c *EncodedCache[T]) Raw() *Cache {
+	return c.cache
+}
+
 func (c *EncodedCache[T]) GetAndFill(ctx context.Context, ids []string) (decoded T, err error) {
 	var results map[string][]byte
 	results, err = c.cache.GetAndFill(ctx, ids)
