@@ -71,12 +71,14 @@ func TestCache_AllHit(t *testing.T) {
 }
 
 func TestCache_TTL(t *testing.T) {
+	client := NewTestClient(t)
+
 	opts := testOpts
 	opts.DataTTL = 50 * time.Millisecond
 
 	var fetches atomic.Int64
 	c, err := NewCache(
-		NewTestClient(t),
+		client,
 		opts,
 		func(ctx context.Context, ids []string) (map[string][]byte, error) {
 			fetches.Add(1)
@@ -90,6 +92,19 @@ func TestCache_TTL(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, fetches.Load())
 
+	// Check that a TTL was set on the key
+	key := c.opts.DataKey("foo")
+	var ttlMs int64
+	ttlMs, err = client.Do(t.Context(), client.B().Pttl().Key(key).Build()).AsInt64()
+	require.NoError(t, err)
+
+	// Redis returns -1 (no ttl) or -2 (no key found)
+	require.Positive(t, ttlMs)
+
+	// Ensure the TTL is sane
+	require.Greater(t, ttlMs, opts.DataTTL.Milliseconds()/2)
+
+	// Test behaviour of Cache
 	// Second fetch, warm cache, should not hit fetch fn
 	_, err = c.GetAndFill(t.Context(), []string{"foo"})
 	require.NoError(t, err)
@@ -102,6 +117,33 @@ func TestCache_TTL(t *testing.T) {
 	_, err = c.GetAndFill(t.Context(), []string{"foo"})
 	require.NoError(t, err)
 	require.EqualValues(t, 2, fetches.Load())
+}
+
+func TestCache_NoTTL(t *testing.T) {
+	client := NewTestClient(t)
+
+	opts := testOpts
+	opts.DataTTL = NoTTL
+
+	c, err := NewCache(
+		client,
+		opts,
+		func(ctx context.Context, ids []string) (map[string][]byte, error) {
+			return map[string][]byte{"foo": []byte("hello")}, nil
+		},
+	)
+	require.NoError(t, err)
+
+	// First fetch: cold cache, should hit fetch fn
+	_, err = c.GetAndFill(t.Context(), []string{"foo"})
+	require.NoError(t, err)
+
+	// Should return -1: "Integer reply: -1 if the key exists but has no associated expiration."
+	key := c.opts.DataKey("foo")
+	var resp int64
+	resp, err = client.Do(t.Context(), client.B().Pttl().Key(key).Build()).AsInt64()
+	require.NoError(t, err)
+	require.EqualValues(t, -1, resp)
 }
 
 // Ensures that if fetch fails, the get attempt is aborted and the fetch error is returned.
