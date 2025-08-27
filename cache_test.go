@@ -793,7 +793,3 @@ func setValue(ctx context.Context, client rueidis.Client, key string, value stri
 func setInt64Value(ctx context.Context, client rueidis.Client, key string, value int64, ttl *time.Duration) error {
 	return setValue(ctx, client, key, strconv.FormatInt(value, 10), ttl)
 }
-
-func setBytesValue(ctx context.Context, client rueidis.Client, key string, value []byte, ttl *time.Duration) error {
-	return setValue(ctx, client, key, string(value), ttl)
-}

@@ -62,3 +62,20 @@ func BackoffFn(min time.Duration, max time.Duration, factor float64) func(int) t
 		return duration
 	}
 }
+
+// FetchOne is a convenience method for fetching a single item at a time (enforced)
+// Use in conjunction with GetAndFillOne
+func FetchOne(
+	fetch func(ctx context.Context, id string) ([]byte, error),
+) func(ctx context.Context, ids []string) (map[string][]byte, error) {
+	return func(ctx context.Context, ids []string) (map[string][]byte, error) {
+		if len(ids) > 1 {
+			return nil, fmt.Errorf("fetchOne: too many ids")
+		}
+		result, err := fetch(ctx, ids[0])
+		if err != nil {
+			return nil, fmt.Errorf("fetching %s: %w", ids[0], err)
+		}
+		return map[string][]byte{ids[0]: result}, nil
+	}
+}

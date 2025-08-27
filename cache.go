@@ -111,13 +111,13 @@ func (o *CacheOpts) Sanitize() error {
 	return nil
 }
 
-// Cache implements a redis-backed cache-aside cache with per-key locking and versioning to prevent cache
+// Cache implements a redis-backed self-filling cache with per-key locking and versioning to prevent cache
 // stampedes and stale writes.
 //
-// The cache stores values under a DataKey, tracks a monotonically increasing version per key, and uses
-// Redis SET NX PX locks to prevent multiple clients from fetching the same data concurrently (stampede protection).
+// The cache stores values under a DataKey, tracks an increasing version per key, and uses Redis SET NX PX locks
+// to prevent multiple clients from fetching the same data concurrently (stampede protection).
 //
-// Suitable for workloads where fetches are relatively expensive (e.g. DB queries, external API calls).
+// Suitable for workloads where fetches are relatively expensive (e.g. DB queries, API calls).
 //
 // The cache offers consistency with the upstream data source, and will not return stale data -- the only exception
 // being if Invalidate is called after a call to GetAndFill for the same key. In this scenario, the GetAndFill
@@ -148,6 +148,10 @@ func NewCache(
 		opts:   opts,
 		fetch:  fetch,
 	}, nil
+}
+
+func (f *Cache) Stats() CacheStats {
+	return f.stats.Snapshot()
 }
 
 // GetAndFill returns cached values for the given ids, fetching missed ones and filling the cache.
@@ -399,8 +403,8 @@ func (f *Cache) getAndFillPass(ctx context.Context, ids []string) (results map[s
 	}
 
 	// TODO: If we've already fetched the data, it makes sense to commit it even if the context is cancelled.
-	//       Seeing this in search, where the ctx is frequently cancelled. Perhaps, like bestEffortUnlock, we
-	//       enforce a minimum attempt duration regardless of the caller's ctx (e.g. 500ms)? a context.MaxOf essentially.
+	//       Perhaps, like bestEffortUnlock, we enforce a minimum attempt duration regardless of the caller's
+	//       ctx (e.g. 500ms)? A context.MaxOf essentially.
 
 	var committed []string
 	committed, err = f.tryCommitAndUnlock(ctx, reqs)

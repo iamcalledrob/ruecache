@@ -3,10 +3,10 @@ package ruecache
 import "sync/atomic"
 
 type CacheStats struct {
-	Hits          int64
-	Misses        int64
-	Fetches       int64
-	Invalidations int64
+	Hits          int64 // The number of items found in the cache
+	Misses        int64 // The number of items not found in the cache
+	Fetches       int64 // The number of times a fetch from the source occurred, for one or more items
+	Invalidations int64 // The number of items that have been manually invalidated
 }
 
 func (s *CacheStats) CountHits(n int64) {

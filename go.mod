@@ -1,11 +1,13 @@
 module github.com/iamcalledrob/ruecache
 
 go 1.23.0
+
 toolchain go1.25.0
 
 require (
 	github.com/redis/rueidis v1.0.64
 	github.com/stretchr/testify v1.11.0
+	google.golang.org/protobuf v1.36.8
 )
 
 require (
